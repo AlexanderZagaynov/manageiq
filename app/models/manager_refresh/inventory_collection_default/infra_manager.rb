@@ -1,394 +1,366 @@
+# frozen_string_literal: true
+
 class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh::InventoryCollectionDefault
+  NETWORK_ATTRIBUTES = {
+    :model_class                 => ::Network,
+    :manager_ref                 => %i[hardware ipaddress ipv6address].freeze,
+    :association                 => :networks,
+    :inventory_object_attributes => %i[
+      description
+      hostname
+      ipaddress
+      subnet_mask
+      ipv6address
+    ].freeze,
+  }.freeze
+
+  HOST_NETWORK_ATTRIBUTES = {
+    :model_class                 => ::Network,
+    :manager_ref                 => %i[hardware ipaddress].freeze,
+    :association                 => :host_networks,
+    :inventory_object_attributes => %i[
+      description
+      hostname
+      ipaddress
+      subnet_mask
+    ].freeze,
+  }.freeze
+
+  GUEST_DEVICE_ATTRIBUTES = {
+    :model_class                 => ::GuestDevice,
+    :manager_ref                 => %i[hardware uid_ems].freeze,
+    :association                 => :guest_devices,
+    :inventory_object_attributes => %i[
+      address
+      controller_type
+      device_name
+      device_type
+      lan
+      location
+      network
+      present
+      switch
+      uid_ems
+    ].freeze,
+  }.freeze
+
+  HOST_HARDWARE_ATTRIBUTES = {
+    :model_class                 => ::Hardware,
+    :manager_ref                 => %i[host],
+    :association                 => :host_hardwares,
+    :inventory_object_attributes => %i[
+      annotation
+      cpu_cores_per_socket
+      cpu_sockets
+      cpu_speed
+      cpu_total_cores
+      cpu_type
+      guest_os
+      manufacturer
+      memory_mb
+      model
+      networks
+      number_of_nics
+      serial_number
+    ].freeze,
+  }.freeze
+
+  SNAPSHOT_ATTRIBUTES = {
+    :model_class                 => ::Snapshot,
+    :manager_ref                 => %i[uid].freeze,
+    :association                 => :snapshots,
+    :inventory_object_attributes => %i[
+      uid_ems
+      uid
+      parent_uid
+      name
+      description
+      create_time
+      current
+      vm_or_template
+    ].freeze,
+  }.freeze
+
+  OPERATING_SYSTEM_ATTRIBUTES = {
+    :model_class                 => ::OperatingSystem,
+    :manager_ref                 => %i[vm_or_template].freeze,
+    :association                 => :operating_systems,
+    :inventory_object_attributes => %i[
+      name
+      product_name
+      product_type
+      system_type
+      version
+    ].freeze,
+  }.freeze
+
+  HOST_OPERATING_SYSTEM_ATTRIBUTES = {
+    :model_class                 => ::OperatingSystem,
+    :manager_ref                 => %i[host].freeze,
+    :association                 => :host_operating_systems,
+    :inventory_object_attributes => %i[
+      name
+      product_name
+      product_type
+      system_type
+      version
+    ].freeze,
+  }.freeze
+
+  CUSTOM_ATTRIBUTE_ATTRIBUTES = {
+    :model_class                 => ::CustomAttribute,
+    :manager_ref                 => %i[name].freeze,
+    :association                 => :custom_attributes,
+    :inventory_object_attributes => %i[
+      section
+      name
+      value
+      source
+    ].freeze,
+  }.freeze
+
+  EMS_FOLDER_ATTRIBUTES = {
+    :model_class                 => ::EmsFolder,
+    :association                 => :ems_folders,
+    :manager_ref                 => %i[uid_ems].freeze,
+    :attributes_blacklist        => %i[ems_children].freeze,
+    :inventory_object_attributes => %i[
+      ems_ref
+      name
+      type
+      uid_ems
+      hidden
+    ].freeze,
+    :builder_params              => {
+      :ems_id => ->(persister) { persister.manager.id },
+    }.freeze,
+  }.freeze
+
+  DATACENTER_ATTRIBUTES = {
+    :model_class                 => ::Datacenter,
+    :association                 => :datacenters,
+    :inventory_object_attributes => %i[
+      name
+      type
+      uid_ems
+      ems_ref
+      ems_ref_obj
+      hidden
+    ].freeze,
+    :builder_params              => {
+      :ems_id => ->(persister) { persister.manager.id },
+    }.freeze,
+  }.freeze
+
+  RESOURCE_POOL_ATTRIBUTES = {
+    :model_class                 => ::ResourcePool,
+    :association                 => :resource_pools,
+    :manager_ref                 => %i[uid_ems].freeze,
+    :attributes_blacklist        => %i[ems_children].freeze,
+    :inventory_object_attributes => %i[
+      ems_ref
+      name
+      uid_ems
+      is_default
+    ].freeze,
+    :builder_params              => {
+      :ems_id => ->(persister) { persister.manager.id },
+    }.freeze,
+  }.freeze
+
+  EMS_CLUSTER_ATTRIBUTES = {
+    :model_class                 => ::EmsCluster,
+    :association                 => :ems_clusters,
+    :attributes_blacklist        => %i[ems_children datacenter_id].freeze,
+    :inventory_object_attributes => %i[
+      ems_ref
+      ems_ref_obj
+      uid_ems
+      name
+      datacenter_id
+    ].freeze,
+    :builder_params              => {
+      :ems_id => ->(persister) { persister.manager.id },
+    }.freeze,
+  }.freeze
+
+  STORAGE_ATTRIBUTES = {
+    :model_class                 => ::Storage,
+    :manager_ref                 => %i[location].freeze,
+    :association                 => :storages,
+    :complete                    => false,
+    :arel                        => Storage,
+    :inventory_object_attributes => %i[
+      ems_ref
+      ems_ref_obj
+      name
+      store_type
+      storage_domain_type
+      total_space
+      free_space
+      uncommitted
+      multiplehostaccess
+      location
+      master
+    ].freeze,
+  }.freeze
+
+  HOST_ATTRIBUTES = {
+    :model_class                 => ::Host,
+    :association                 => :hosts,
+    :custom_reconnect_block      => self::INVENTORY_RECONNECT_BLOCK,
+    :inventory_object_attributes => %i[
+      type
+      ems_ref
+      ems_ref_obj
+      name
+      hostname
+      ipaddress
+      uid_ems
+      vmm_vendor
+      vmm_product
+      vmm_version
+      vmm_buildnumber
+      connection_state
+      power_state
+      ems_cluster
+      ipmi_address
+      maintenance
+    ].freeze,
+    :builder_params              => {
+      :ems_id => ->(persister) { persister.manager.id },
+    }.freeze,
+  }.freeze
+
+  HOST_STORAGE_ATTRIBUTES = {
+    :model_class                 => ::HostStorage,
+    :manager_ref                 => %i[host storage].freeze,
+    :association                 => :host_storages,
+    :inventory_object_attributes => %i[
+      ems_ref
+      read_only
+      host
+      storage
+    ].freeze,
+  }.freeze
+
+  HOST_SWITCH_ATTRIBUTES = {
+    :model_class                 => ::HostSwitch,
+    :manager_ref                 => %i[host switch].freeze,
+    :association                 => :host_switches,
+    :inventory_object_attributes => %i[
+      host
+      switch
+    ].freeze,
+  }.freeze
+
+  SWITCH_ATTRIBUTES = {
+    :model_class                 => ::Switch,
+    :manager_ref                 => %i[uid_ems].freeze,
+    :association                 => :switches,
+    :inventory_object_attributes => %i[
+      uid_ems
+      name
+      lans
+    ].freeze,
+  }.freeze
+
+  LAN_ATTRIBUTES = {
+    :model_class                 => ::Lan,
+    :manager_ref                 => %i[uid_ems],
+    :association                 => :lans,
+    :inventory_object_attributes => %i[
+      name
+      uid_ems
+      tag
+    ].freeze,
+  }.freeze
+
+  SNAPSHOT_PARENT_ATTRIBUTES = {
+    :association       => :snapshot_parent,
+    :custom_save_block => lambda do |_ems, inventory_collection|
+      snapshot_collection = inventory_collection.dependency_attributes[:snapshots].try(:first)
+      snapshot_collection.each do |snapshot|
+        ActiveRecord::Base.transaction do
+          parent = Snapshot.find_by(:uid_ems => snapshot.parent_uid)
+          child  = Snapshot.find(snapshot.id)
+          child.update_attribute(:parent_id, parent.try(:id))
+        end
+      end
+    end.freeze,
+  }.freeze
+
   class << self
     def networks(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::Network,
-        :manager_ref                 => [:hardware, :ipaddress, :ipv6address],
-        :association                 => :networks,
-        :inventory_object_attributes => [
-          :description,
-          :hostname,
-          :ipaddress,
-          :subnet_mask,
-          :ipv6address,
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      self::NETWORK_ATTRIBUTES.merge(extra_attributes)
     end
 
     def host_networks(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::Network,
-        :manager_ref                 => [:hardware, :ipaddress],
-        :association                 => :host_networks,
-        :inventory_object_attributes => [
-          :description,
-          :hostname,
-          :ipaddress,
-          :subnet_mask
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      self::HOST_NETWORK_ATTRIBUTES.merge(extra_attributes)
     end
 
     def guest_devices(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::GuestDevice,
-        :manager_ref                 => [:hardware, :uid_ems],
-        :association                 => :guest_devices,
-        :inventory_object_attributes => [
-          :address,
-          :controller_type,
-          :device_name,
-          :device_type,
-          :lan,
-          :location,
-          :network,
-          :present,
-          :switch,
-          :uid_ems
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      self::GUEST_DEVICE_ATTRIBUTES.merge(extra_attributes)
     end
 
     def host_hardwares(extra_attributes = {})
-      attributes = {
-        :model_class => ::Hardware,
-        :manager_ref => [:host],
-        :association => :host_hardwares,
-        :inventory_object_attributes => [
-          :annotation,
-          :cpu_cores_per_socket,
-          :cpu_sockets,
-          :cpu_speed,
-          :cpu_total_cores,
-          :cpu_type,
-          :guest_os,
-          :manufacturer,
-          :memory_mb,
-          :model,
-          :networks,
-          :number_of_nics,
-          :serial_number
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      self::HOST_HARDWARE_ATTRIBUTES.merge(extra_attributes)
     end
 
     def snapshots(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::Snapshot,
-        :manager_ref                 => [:uid],
-        :association                 => :snapshots,
-        :inventory_object_attributes => [
-          :uid_ems,
-          :uid,
-          :parent_uid,
-          :name,
-          :description,
-          :create_time,
-          :current,
-          :vm_or_template
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
-    end
-
-    def operating_systems(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::OperatingSystem,
-        :manager_ref                 => [:vm_or_template],
-        :association                 => :operating_systems,
-        :inventory_object_attributes => [
-          :name,
-          :product_name,
-          :product_type,
-          :system_type,
-          :version
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      self::SNAPSHOT_ATTRIBUTES.merge(extra_attributes)
     end
 
     def host_operating_systems(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::OperatingSystem,
-        :manager_ref                 => [:host],
-        :association                 => :host_operating_systems,
-        :inventory_object_attributes => [
-          :name,
-          :product_name,
-          :product_type,
-          :system_type,
-          :version
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      HOST_OPERATING_SYSTEM_ATTRIBUTES.merge(extra_attributes)
     end
 
     def custom_attributes(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::CustomAttribute,
-        :manager_ref                 => [:name],
-        :association                 => :custom_attributes,
-        :inventory_object_attributes => [
-          :section,
-          :name,
-          :value,
-          :source,
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      CUSTOM_ATTRIBUTE_ATTRIBUTES.merge(extra_attributes)
     end
 
     def ems_folders(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::EmsFolder,
-        :association                 => :ems_folders,
-        :manager_ref                 => [:uid_ems],
-        :attributes_blacklist        => [:ems_children],
-        :inventory_object_attributes => [
-          :ems_ref,
-          :name,
-          :type,
-          :uid_ems,
-          :hidden
-        ],
-        :builder_params              => {
-          :ems_id => ->(persister) { persister.manager.id },
-        },
-      }
-
-      attributes.merge!(extra_attributes)
+      EMS_FOLDER_ATTRIBUTES.merge(extra_attributes)
     end
 
     def datacenters(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::Datacenter,
-        :association                 => :datacenters,
-        :inventory_object_attributes => [
-          :name,
-          :type,
-          :uid_ems,
-          :ems_ref,
-          :ems_ref_obj,
-          :hidden
-        ],
-        :builder_params              => {
-          :ems_id => ->(persister) { persister.manager.id },
-        },
-      }
-
-      attributes.merge!(extra_attributes)
+      DATACENTER_ATTRIBUTES.merge(extra_attributes)
     end
 
     def resource_pools(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::ResourcePool,
-        :association                 => :resource_pools,
-        :manager_ref                 => [:uid_ems],
-        :attributes_blacklist        => [:ems_children],
-        :inventory_object_attributes => [
-          :ems_ref,
-          :name,
-          :uid_ems,
-          :is_default,
-        ],
-        :builder_params              => {
-          :ems_id => ->(persister) { persister.manager.id },
-        },
-      }
-
-      attributes.merge!(extra_attributes)
+      RESOURCE_POOL_ATTRIBUTES.merge(extra_attributes)
     end
 
     def ems_clusters(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::EmsCluster,
-        :association                 => :ems_clusters,
-        :attributes_blacklist        => [:ems_children, :datacenter_id],
-        :inventory_object_attributes => [
-          :ems_ref,
-          :ems_ref_obj,
-          :uid_ems,
-          :name,
-          :datacenter_id,
-        ],
-        :builder_params              => {
-          :ems_id => ->(persister) { persister.manager.id },
-        },
-      }
-
-      attributes.merge!(extra_attributes)
+      EMS_CLUSTER_ATTRIBUTES.merge(extra_attributes)
     end
 
     def storages(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::Storage,
-        :manager_ref                 => [:location],
-        :association                 => :storages,
-        :complete                    => false,
-        :arel                        => Storage,
-        :inventory_object_attributes => [
-          :ems_ref,
-          :ems_ref_obj,
-          :name,
-          :store_type,
-          :storage_domain_type,
-          :total_space,
-          :free_space,
-          :uncommitted,
-          :multiplehostaccess,
-          :location,
-          :master
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      STORAGE_ATTRIBUTES.merge(extra_attributes)
     end
 
     def hosts(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::Host,
-        :association                 => :hosts,
-        :inventory_object_attributes => [
-          :type,
-          :ems_ref,
-          :ems_ref_obj,
-          :name,
-          :hostname,
-          :ipaddress,
-          :uid_ems,
-          :vmm_vendor,
-          :vmm_product,
-          :vmm_version,
-          :vmm_buildnumber,
-          :connection_state,
-          :power_state,
-          :ems_cluster,
-          :ipmi_address,
-          :maintenance
-        ],
-        :builder_params              => {
-          :ems_id => ->(persister) { persister.manager.id },
-        },
-        :custom_reconnect_block      => lambda do |inventory_collection, inventory_objects_index, attributes_index|
-          relation = inventory_collection.model_class.where(:ems_id => nil)
-
-          return if relation.count <= 0
-
-          inventory_objects_index.each_slice(100) do |batch|
-            relation.where(inventory_collection.manager_ref.first => batch.map(&:first)).each do |record|
-              index = inventory_collection.object_index_with_keys(inventory_collection.manager_ref_to_cols, record)
-
-              # We need to delete the record from the inventory_objects_index and attributes_index, otherwise it
-              # would be sent for create.
-              inventory_object = inventory_objects_index.delete(index)
-              hash             = attributes_index.delete(index)
-
-              record.assign_attributes(hash.except(:id, :type))
-              if !inventory_collection.check_changed? || record.changed?
-                record.save!
-                inventory_collection.store_updated_records(record)
-              end
-
-              inventory_object.id = record.id
-            end
-          end
-        end
-      }
-
-      attributes.merge!(extra_attributes)
+      HOST_ATTRIBUTES.merge(extra_attributes)
     end
 
     def host_storages(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::HostStorage,
-        :manager_ref                 => [:host, :storage],
-        :association                 => :host_storages,
-        :inventory_object_attributes => [
-          :ems_ref,
-          :read_only,
-          :host,
-          :storage,
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      HOST_STORAGE_ATTRIBUTES.merge(extra_attributes)
     end
 
     def host_switches(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::HostSwitch,
-        :manager_ref                 => [:host, :switch],
-        :association                 => :host_switches,
-        :inventory_object_attributes => [
-          :host,
-          :switch,
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      HOST_SWITCH_ATTRIBUTES.merge(extra_attributes)
     end
 
     def switches(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::Switch,
-        :manager_ref                 => [:uid_ems],
-        :association                 => :switches,
-        :inventory_object_attributes => [
-          :uid_ems,
-          :name,
-          :lans
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      SWITCH_ATTRIBUTES.merge(extra_attributes)
     end
 
     def lans(extra_attributes = {})
-      attributes = {
-        :model_class                 => ::Lan,
-        :manager_ref                 => [:uid_ems],
-        :association                 => :lans,
-        :inventory_object_attributes => [
-          :name,
-          :uid_ems,
-          :tag
-        ],
-      }
-
-      attributes.merge!(extra_attributes)
+      LAN_ATTRIBUTES.merge!(extra_attributes)
     end
 
     def snapshot_parent(extra_attributes = {})
-      snapshot_parent_save_block = lambda do |_ems, inventory_collection|
-        snapshot_collection = inventory_collection.dependency_attributes[:snapshots].try(:first)
-
-        snapshot_collection.each do |snapshot|
-          ActiveRecord::Base.transaction do
-            child = Snapshot.find(snapshot.id)
-            parent = Snapshot.find_by(:uid_ems => snapshot.parent_uid)
-            child.update_attribute(:parent_id, parent.try(:id))
-          end
-        end
-      end
-
-      attributes = {
-        :association       => :snapshot_patent,
-        :custom_save_block => snapshot_parent_save_block,
-      }
-
-      attributes.merge!(extra_attributes)
+      SNAPSHOT_PARENT_ATTRIBUTES.merge(extra_attributes)
     end
   end
 end
