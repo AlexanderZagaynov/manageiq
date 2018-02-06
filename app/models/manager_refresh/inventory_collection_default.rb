@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class ManagerRefresh::InventoryCollectionDefault
+  ATTRIBUTES_CONST_REGEXP = /_ATTRIBUTES$/i
+
   INVENTORY_RECONNECT_BLOCK = lambda do |inventory_collection, inventory_objects_index, attributes_index|
     relation = inventory_collection.model_class.where(:ems_id => nil)
 
@@ -223,22 +225,6 @@ class ManagerRefresh::InventoryCollectionDefault
   }.freeze
 
   class << self
-    def vms(extra_attributes = {})
-      self::VM_ATTRIBUTES.merge(extra_attributes)
-    end
-
-    def miq_templates(extra_attributes = {})
-      self::MIQ_TEMPLATE_ATTRIBUTES.merge(extra_attributes)
-    end
-
-    def hardwares(extra_attributes = {})
-      self::HARDWARE_ATTRIBUTES.merge(extra_attributes)
-    end
-
-    def operating_systems(extra_attributes = {})
-      self::OPERATING_SYSTEM_ATTRIBUTES.merge(extra_attributes)
-    end
-
     def disks(extra_attributes = {})
       attributes = self::DISK_ATTRIBUTES.merge(extra_attributes)
       if !extra_attributes.has_key?(:custom_manager_uuid) && extra_attributes[:strategy] != :local_db_cache_all
@@ -246,5 +232,19 @@ class ManagerRefresh::InventoryCollectionDefault
       end
       attributes
     end
+
+    private
+
+    def define_attribute_getters
+      constants(false).grep(ATTRIBUTES_CONST_REGEXP).each do |const_name|
+        method_name = const_name.to_s.sub(ATTRIBUTES_CONST_REGEXP, '').underscore.pluralize.to_sym
+        next if singleton_class.method_defined?(method_name)
+        define_singleton_method method_name do |extra_attributes = {}|
+          const_get(const_name).merge(extra_attributes)
+        end
+      end
+    end
   end
+
+  define_attribute_getters
 end
