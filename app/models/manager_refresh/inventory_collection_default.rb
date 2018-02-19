@@ -35,17 +35,17 @@ class ManagerRefresh::InventoryCollectionDefault
     :use_ar_object               => true, # Because of raw_power_state setter and hooks are needed for settings user
     :delete_method               => :disconnect_inv,
     :saver_strategy              => :default,
-    :attributes_blacklist        => %i[genealogy_parent].freeze,
+    :attributes_blacklist        => %i(genealogy_parent).freeze,
     :custom_reconnect_block      => self::INVENTORY_RECONNECT_BLOCK,
 
     # TODO(lsmola) can't do batch strategy for vms because of key_pairs relation
-    :batch_extra_attributes      => %i[
+    :batch_extra_attributes      => %i(
       power_state
       previous_state
       state_changed_on
-    ].freeze,
+    ).freeze,
 
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       type
       cpu_limit
       cpu_reserve
@@ -72,7 +72,7 @@ class ManagerRefresh::InventoryCollectionDefault
       storages
       storage
       snapshots
-    ].freeze,
+    ).freeze,
 
     :builder_params              => {
       :ems_id   => ->(persister) { persister.manager.id },
@@ -87,16 +87,16 @@ class ManagerRefresh::InventoryCollectionDefault
     :use_ar_object               => true, # Because of raw_power_state setter
     :delete_method               => :disconnect_inv,
     :saver_strategy              => :default, # Hooks are needed for setting user
-    :attributes_blacklist        => %i[genealogy_parent].freeze,
+    :attributes_blacklist        => %i(genealogy_parent).freeze,
     :custom_reconnect_block      => self::INVENTORY_RECONNECT_BLOCK,
 
-    :batch_extra_attributes      => %i[
+    :batch_extra_attributes      => %i(
       power_state
       previous_state
       state_changed_on
-    ].freeze,
+    ).freeze,
 
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       type
       ems_ref
       ems_ref_obj
@@ -115,7 +115,7 @@ class ManagerRefresh::InventoryCollectionDefault
       storages
       storage
       snapshots
-    ].freeze,
+    ).freeze,
 
     :builder_params              => {
       :ems_id   => ->(persister) { persister.manager.id },
@@ -128,13 +128,13 @@ class ManagerRefresh::InventoryCollectionDefault
   HARDWARE_ATTRIBUTES = {
     :model_class                  => ::Hardware,
     :association                  => :hardwares,
-    :manager_ref                  => %i[vm_or_template].freeze,
+    :manager_ref                  => %i(vm_or_template).freeze,
     # TODO(lsmola) just because of default value on cpu_sockets,
     # this can be fixed by separating instances_hardwares and images_hardwares
     :use_ar_object                => true,
-    :parent_inventory_collections => %i[vms miq_templates].freeze,
+    :parent_inventory_collections => %i(vms miq_templates).freeze,
 
-    :inventory_object_attributes  => %i[
+    :inventory_object_attributes  => %i(
       annotation
       cpu_cores_per_socket
       cpu_sockets
@@ -149,7 +149,7 @@ class ManagerRefresh::InventoryCollectionDefault
       number_of_nics
       serial_number
       virtual_hw_version
-    ].freeze,
+    ).freeze,
 
     :targeted_arel                => lambda do |inventory_collection|
       manager_uuids = inventory_collection.parent_inventory_collections.flat_map { |c| c.manager_uuids.to_a }
@@ -160,31 +160,31 @@ class ManagerRefresh::InventoryCollectionDefault
   OPERATING_SYSTEM_ATTRIBUTES = {
     :model_class                  => ::OperatingSystem,
     :association                  => :operating_systems,
-    :manager_ref                  => %i[vm_or_template].freeze,
-    :parent_inventory_collections => %i[vms miq_templates].freeze,
+    :manager_ref                  => %i(vm_or_template).freeze,
+    :parent_inventory_collections => %i(vms miq_templates).freeze,
 
-    :inventory_object_attributes  => %i[
+    :inventory_object_attributes  => %i(
       name
       product_name
       product_type
       system_type
       version
-    ].freeze,
+    ).freeze,
 
     :targeted_arel                => lambda do |inventory_collection|
       manager_uuids = inventory_collection.parent_inventory_collections.flat_map { |c| c.manager_uuids.to_a }
       inventory_collection.parent.operating_systems.joins(:vm_or_template)
-        .where('vms' => { :ems_ref => manager_uuids })
+                          .where('vms' => { :ems_ref => manager_uuids })
     end.freeze,
   }.freeze
 
   DISK_ATTRIBUTES = {
     :model_class                  => ::Disk,
     :association                  => :disks,
-    :manager_ref                  => %i[hardware device_name].freeze,
-    :parent_inventory_collections => %i[vms].freeze,
+    :manager_ref                  => %i(hardware device_name).freeze,
+    :parent_inventory_collections => %i(vms).freeze,
 
-    :inventory_object_attributes  => %i[
+    :inventory_object_attributes  => %i(
       device_name
       device_type
       controller_type
@@ -197,12 +197,12 @@ class ManagerRefresh::InventoryCollectionDefault
       mode
       bootable
       storage
-    ].freeze,
+    ).freeze,
 
     :targeted_arel                => lambda do |inventory_collection|
       manager_uuids = inventory_collection.parent_inventory_collections.flat_map { |c| c.manager_uuids.to_a }
       inventory_collection.parent.disks.joins(:hardware => :vm_or_template)
-        .where(:hardware => { 'vms' => { :ems_ref => manager_uuids } })
+                          .where(:hardware => { 'vms' => { :ems_ref => manager_uuids } })
     end.freeze,
   }.freeze
 

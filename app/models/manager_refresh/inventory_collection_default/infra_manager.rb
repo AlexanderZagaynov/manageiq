@@ -3,34 +3,34 @@
 class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh::InventoryCollectionDefault
   NETWORK_ATTRIBUTES = {
     :model_class                 => ::Network,
-    :manager_ref                 => %i[hardware ipaddress ipv6address].freeze,
+    :manager_ref                 => %i(hardware ipaddress ipv6address).freeze,
     :association                 => :networks,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       description
       hostname
       ipaddress
       subnet_mask
       ipv6address
-    ].freeze,
+    ).freeze,
   }.freeze
 
   HOST_NETWORK_ATTRIBUTES = {
     :model_class                 => ::Network,
-    :manager_ref                 => %i[hardware ipaddress].freeze,
+    :manager_ref                 => %i(hardware ipaddress).freeze,
     :association                 => :host_networks,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       description
       hostname
       ipaddress
       subnet_mask
-    ].freeze,
+    ).freeze,
   }.freeze
 
   GUEST_DEVICE_ATTRIBUTES = {
     :model_class                 => ::GuestDevice,
-    :manager_ref                 => %i[hardware uid_ems].freeze,
+    :manager_ref                 => %i(hardware uid_ems).freeze,
     :association                 => :guest_devices,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       address
       controller_type
       device_name
@@ -41,14 +41,14 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
       present
       switch
       uid_ems
-    ].freeze,
+    ).freeze,
   }.freeze
 
   HOST_HARDWARE_ATTRIBUTES = {
     :model_class                 => ::Hardware,
-    :manager_ref                 => %i[host],
+    :manager_ref                 => %i(host),
     :association                 => :host_hardwares,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       annotation
       cpu_cores_per_socket
       cpu_sockets
@@ -62,14 +62,14 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
       networks
       number_of_nics
       serial_number
-    ].freeze,
+    ).freeze,
   }.freeze
 
   SNAPSHOT_ATTRIBUTES = {
     :model_class                 => ::Snapshot,
-    :manager_ref                 => %i[uid].freeze,
+    :manager_ref                 => %i(uid).freeze,
     :association                 => :snapshots,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       uid_ems
       uid
       parent_uid
@@ -78,59 +78,59 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
       create_time
       current
       vm_or_template
-    ].freeze,
+    ).freeze,
   }.freeze
 
   OPERATING_SYSTEM_ATTRIBUTES = {
     :model_class                 => ::OperatingSystem,
-    :manager_ref                 => %i[vm_or_template].freeze,
+    :manager_ref                 => %i(vm_or_template).freeze,
     :association                 => :operating_systems,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       name
       product_name
       product_type
       system_type
       version
-    ].freeze,
+    ).freeze,
   }.freeze
 
   HOST_OPERATING_SYSTEM_ATTRIBUTES = {
     :model_class                 => ::OperatingSystem,
-    :manager_ref                 => %i[host].freeze,
+    :manager_ref                 => %i(host).freeze,
     :association                 => :host_operating_systems,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       name
       product_name
       product_type
       system_type
       version
-    ].freeze,
+    ).freeze,
   }.freeze
 
   CUSTOM_ATTRIBUTE_ATTRIBUTES = {
     :model_class                 => ::CustomAttribute,
-    :manager_ref                 => %i[name].freeze,
+    :manager_ref                 => %i(name).freeze,
     :association                 => :custom_attributes,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       section
       name
       value
       source
-    ].freeze,
+    ).freeze,
   }.freeze
 
   EMS_FOLDER_ATTRIBUTES = {
     :model_class                 => ::EmsFolder,
     :association                 => :ems_folders,
-    :manager_ref                 => %i[uid_ems].freeze,
-    :attributes_blacklist        => %i[ems_children].freeze,
-    :inventory_object_attributes => %i[
+    :manager_ref                 => %i(uid_ems).freeze,
+    :attributes_blacklist        => %i(ems_children).freeze,
+    :inventory_object_attributes => %i(
       ems_ref
       name
       type
       uid_ems
       hidden
-    ].freeze,
+    ).freeze,
     :builder_params              => {
       :ems_id => ->(persister) { persister.manager.id },
     }.freeze,
@@ -139,14 +139,14 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
   DATACENTER_ATTRIBUTES = {
     :model_class                 => ::Datacenter,
     :association                 => :datacenters,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       name
       type
       uid_ems
       ems_ref
       ems_ref_obj
       hidden
-    ].freeze,
+    ).freeze,
     :builder_params              => {
       :ems_id => ->(persister) { persister.manager.id },
     }.freeze,
@@ -155,14 +155,14 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
   RESOURCE_POOL_ATTRIBUTES = {
     :model_class                 => ::ResourcePool,
     :association                 => :resource_pools,
-    :manager_ref                 => %i[uid_ems].freeze,
-    :attributes_blacklist        => %i[ems_children].freeze,
-    :inventory_object_attributes => %i[
+    :manager_ref                 => %i(uid_ems).freeze,
+    :attributes_blacklist        => %i(ems_children).freeze,
+    :inventory_object_attributes => %i(
       ems_ref
       name
       uid_ems
       is_default
-    ].freeze,
+    ).freeze,
     :builder_params              => {
       :ems_id => ->(persister) { persister.manager.id },
     }.freeze,
@@ -171,14 +171,14 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
   EMS_CLUSTER_ATTRIBUTES = {
     :model_class                 => ::EmsCluster,
     :association                 => :ems_clusters,
-    :attributes_blacklist        => %i[ems_children datacenter_id].freeze,
-    :inventory_object_attributes => %i[
+    :attributes_blacklist        => %i(ems_children datacenter_id).freeze,
+    :inventory_object_attributes => %i(
       ems_ref
       ems_ref_obj
       uid_ems
       name
       datacenter_id
-    ].freeze,
+    ).freeze,
     :builder_params              => {
       :ems_id => ->(persister) { persister.manager.id },
     }.freeze,
@@ -186,11 +186,11 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
 
   STORAGE_ATTRIBUTES = {
     :model_class                 => ::Storage,
-    :manager_ref                 => %i[location].freeze,
+    :manager_ref                 => %i(location).freeze,
     :association                 => :storages,
     :complete                    => false,
     :arel                        => Storage,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       ems_ref
       ems_ref_obj
       name
@@ -202,14 +202,14 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
       multiplehostaccess
       location
       master
-    ].freeze,
+    ).freeze,
   }.freeze
 
   HOST_ATTRIBUTES = {
     :model_class                 => ::Host,
     :association                 => :hosts,
     :custom_reconnect_block      => self::INVENTORY_RECONNECT_BLOCK,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       type
       ems_ref
       ems_ref_obj
@@ -226,7 +226,7 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
       ems_cluster
       ipmi_address
       maintenance
-    ].freeze,
+    ).freeze,
     :builder_params              => {
       :ems_id => ->(persister) { persister.manager.id },
     }.freeze,
@@ -234,46 +234,46 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
 
   HOST_STORAGE_ATTRIBUTES = {
     :model_class                 => ::HostStorage,
-    :manager_ref                 => %i[host storage].freeze,
+    :manager_ref                 => %i(host storage).freeze,
     :association                 => :host_storages,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       ems_ref
       read_only
       host
       storage
-    ].freeze,
+    ).freeze,
   }.freeze
 
   HOST_SWITCH_ATTRIBUTES = {
     :model_class                 => ::HostSwitch,
-    :manager_ref                 => %i[host switch].freeze,
+    :manager_ref                 => %i(host switch).freeze,
     :association                 => :host_switches,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       host
       switch
-    ].freeze,
+    ).freeze,
   }.freeze
 
   SWITCH_ATTRIBUTES = {
     :model_class                 => ::Switch,
-    :manager_ref                 => %i[uid_ems].freeze,
+    :manager_ref                 => %i(uid_ems).freeze,
     :association                 => :switches,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       uid_ems
       name
       lans
-    ].freeze,
+    ).freeze,
   }.freeze
 
   LAN_ATTRIBUTES = {
     :model_class                 => ::Lan,
-    :manager_ref                 => %i[uid_ems],
+    :manager_ref                 => %i(uid_ems),
     :association                 => :lans,
-    :inventory_object_attributes => %i[
+    :inventory_object_attributes => %i(
       name
       uid_ems
       tag
-    ].freeze,
+    ).freeze,
   }.freeze
 
   SNAPSHOT_PARENT_ATTRIBUTES = {
@@ -293,7 +293,7 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
   define_attribute_getters
 
   class << self
-    alias_method :snapshot_parent, :snapshot_parents
+    alias snapshot_parent snapshot_parents
     undef_method :snapshot_parents
   end
 end
