@@ -151,20 +151,6 @@ class ManagerRefresh::InventoryCollectionDefault
       virtual_hw_version
     ].freeze,
 
-    :custom_manager_uuid          => lambda do |hardware|
-      [hardware.vm_or_template.ems_ref].freeze
-    end.freeze,
-
-    :custom_db_finder             => lambda do |inventory_collection, selection, _projection|
-      relation = inventory_collection.parent.send(inventory_collection.association)
-                                     .includes(:vm_or_template).references(:vm_or_template)
-      if selection.present?
-        ems_refs = selection.map { |x| x[:vm_or_template] }
-        relation = relation.where(:vms => { :ems_ref => ems_refs })
-      end
-      relation
-    end.freeze,
-
     :targeted_arel                => lambda do |inventory_collection|
       manager_uuids = inventory_collection.parent_inventory_collections.flat_map { |c| c.manager_uuids.to_a }
       inventory_collection.parent.hardwares.joins(:vm_or_template).where('vms' => { :ems_ref => manager_uuids })
@@ -213,10 +199,6 @@ class ManagerRefresh::InventoryCollectionDefault
       storage
     ].freeze,
 
-    :custom_manager_uuid          => lambda do |disk|
-      [disk.hardware.vm_or_template.ems_ref, disk.device_name].freeze
-    end.freeze,
-
     :targeted_arel                => lambda do |inventory_collection|
       manager_uuids = inventory_collection.parent_inventory_collections.flat_map { |c| c.manager_uuids.to_a }
       inventory_collection.parent.disks.joins(:hardware => :vm_or_template)
@@ -225,14 +207,6 @@ class ManagerRefresh::InventoryCollectionDefault
   }.freeze
 
   class << self
-    def disks(extra_attributes = {})
-      attributes = self::DISK_ATTRIBUTES.merge(extra_attributes)
-      if !extra_attributes.has_key?(:custom_manager_uuid) && extra_attributes[:strategy] != :local_db_cache_all
-        attributes.delete(:custom_manager_uuid)
-      end
-      attributes
-    end
-
     private
 
     def define_attribute_getters

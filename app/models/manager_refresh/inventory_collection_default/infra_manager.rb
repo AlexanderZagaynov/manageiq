@@ -291,4 +291,9 @@ class ManagerRefresh::InventoryCollectionDefault::InfraManager < ManagerRefresh:
   }.freeze
 
   define_attribute_getters
+
+  class << self
+    alias_method :snapshot_parent, :snapshot_parents
+    undef_method :snapshot_parents
+  end
 end
