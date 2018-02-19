@@ -1,32 +1,9 @@
 # frozen_string_literal: true
 
-describe ManagerRefresh::InventoryCollectionDefault do
-  it 'pickups existing Vm and MiqTemplate records on Amazon EMS re-adding' do
-    ems = new_amazon_ems
-
-    with_vcr_data { expect { EmsRefresh.refresh(ems) }.to change { VmOrTemplate.count }.from(0) }
-    expect { ems.destroy }.to_not change { VmOrTemplate.count }
-
-    aggregate_failures do
-      expect(Vm.count).to_not be_zero
-      expect(MiqTemplate.count).to_not be_zero
-      expect(ExtManagementSystem.count).to be_zero
-    end
-
-    ems = new_amazon_ems
-
-    with_vcr_data do
-      expect { EmsRefresh.refresh(ems) }
-        .to  change { VmOrTemplate.distinct.pluck(:ems_id) }.from([nil]).to([ems.id])
-        .and change { VmOrTemplate.count } .by(0)
-        .and change { MiqTemplate.count }  .by(0)
-        .and change { Vm.count }           .by(0)
-    end
-  end
-
+describe ManagerRefresh::InventoryCollectionDefault::InfraManager do
   # TODO (zalex): remove whole context on the further described_class development
   context 'refactoring' do
-    OLD_VERSION_URL = 'https://raw.githubusercontent.com/ManageIQ/manageiq/8696169931b6b6c184ac21022162e99b3e21d236/app/models/manager_refresh/inventory_collection_default.rb'
+    OLD_VERSION_URL = 'https://raw.githubusercontent.com/AlexanderZagaynov/manageiq/efaa339af78a230eed513d002ce4487ae162a977/app/models/manager_refresh/inventory_collection_default/infra_manager.rb'
 
     before :context do
       described_class_name = described_class.name.demodulize
@@ -65,7 +42,8 @@ describe ManagerRefresh::InventoryCollectionDefault do
       it_should_behave_like :unchanged, method_name
     end
 
-    it_should_behave_like :unchanged, :disks, :strategy => :local_db_cache_all
+    it_should_behave_like :unchanged, :vms
+    it_should_behave_like :unchanged, :operating_systems
 
     private
 
@@ -91,16 +69,5 @@ describe ManagerRefresh::InventoryCollectionDefault do
       cassette_file_name = "#{described_class.name.underscore}-refactoring"
       VCR.use_cassette(cassette_file_name) { yield }
     end
-  end
-
-  private
-
-  def with_vcr_data
-    cassette_file_name = described_class.name.underscore
-    VCR.use_cassette(cassette_file_name) { yield }
-  end
-
-  def new_amazon_ems
-    FactoryGirl.create(:ems_amazon_with_vcr_authentication, :provider_region => 'eu-central-1')
   end
 end

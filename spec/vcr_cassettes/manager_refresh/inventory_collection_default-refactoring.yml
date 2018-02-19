@@ -1,0 +1,258 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://raw.githubusercontent.com/ManageIQ/manageiq/8696169931b6b6c184ac21022162e99b3e21d236/app/models/manager_refresh/inventory_collection_default.rb
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Content-Security-Policy:
+      - default-src 'none'; style-src 'unsafe-inline'; sandbox
+      Strict-Transport-Security:
+      - max-age=31536000
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - deny
+      X-Xss-Protection:
+      - 1; mode=block
+      Etag:
+      - '"02585fc98d11454dd5dd7cf0b130b1a8149170fc"'
+      Content-Type:
+      - text/plain; charset=utf-8
+      Cache-Control:
+      - max-age=300
+      X-Geo-Block-List:
+      - ''
+      X-Github-Request-Id:
+      - 519A:40B0:56408A:591841:5A8714BC
+      Content-Length:
+      - '1176'
+      Accept-Ranges:
+      - bytes
+      Date:
+      - Fri, 16 Feb 2018 17:28:31 GMT
+      Via:
+      - 1.1 varnish
+      Connection:
+      - keep-alive
+      X-Served-By:
+      - cache-ams4128-AMS
+      X-Cache:
+      - MISS
+      X-Cache-Hits:
+      - '0'
+      X-Timer:
+      - S1518802111.872414,VS0,VE147
+      Vary:
+      - Authorization,Accept-Encoding
+      Access-Control-Allow-Origin:
+      - "*"
+      X-Fastly-Request-Id:
+      - f4108b3c8ac2232b8431b9423b420ad8946429ee
+      Expires:
+      - Fri, 16 Feb 2018 17:33:31 GMT
+      Source-Age:
+      - '0'
+    body:
+      encoding: ASCII-8BIT
+      string: |
+        class ManagerRefresh::InventoryCollectionDefault
+          class << self
+            def vms(extra_attributes = {})
+              attributes = {
+                :model_class                 => ::Vm,
+                :association                 => :vms,
+                :delete_method               => :disconnect_inv,
+                :attributes_blacklist        => [:genealogy_parent],
+                :use_ar_object               => true, # Because of raw_power_state setter and hooks are needed for settings user
+                # TODO(lsmola) can't do batch strategy for vms because of key_pairs relation
+                :saver_strategy              => :default,
+                :batch_extra_attributes      => [:power_state, :state_changed_on, :previous_state],
+                :inventory_object_attributes => [
+                  :type,
+                  :cpu_limit,
+                  :cpu_reserve,
+                  :cpu_reserve_expand,
+                  :cpu_shares,
+                  :cpu_shares_level,
+                  :ems_ref,
+                  :ems_ref_obj,
+                  :uid_ems,
+                  :connection_state,
+                  :vendor,
+                  :name,
+                  :location,
+                  :template,
+                  :memory_limit,
+                  :memory_reserve,
+                  :memory_reserve_expand,
+                  :memory_shares,
+                  :memory_shares_level,
+                  :raw_power_state,
+                  :boot_time,
+                  :host,
+                  :ems_cluster,
+                  :storages,
+                  :storage,
+                  :snapshots
+                ],
+                :builder_params              => {
+                  :ems_id   => ->(persister) { persister.manager.id },
+                  :name     => "unknown",
+                  :location => "unknown",
+                }
+              }
+
+              attributes.merge!(extra_attributes)
+            end
+
+            def miq_templates(extra_attributes = {})
+              attributes = {
+                :model_class                 => ::MiqTemplate,
+                :association                 => :miq_templates,
+                :delete_method               => :disconnect_inv,
+                :attributes_blacklist        => [:genealogy_parent],
+                :use_ar_object               => true, # Because of raw_power_state setter
+                :saver_strategy              => :default, # Hooks are needed for setting user
+                :batch_extra_attributes      => [:power_state, :state_changed_on, :previous_state],
+                :inventory_object_attributes => [
+                  :type,
+                  :ems_ref,
+                  :ems_ref_obj,
+                  :uid_ems,
+                  :connection_state,
+                  :vendor,
+                  :name,
+                  :location,
+                  :template,
+                  :memory_limit,
+                  :memory_reserve,
+                  :raw_power_state,
+                  :boot_time,
+                  :host,
+                  :ems_cluster,
+                  :storages,
+                  :storage,
+                  :snapshots
+                ],
+                :builder_params              => {
+                  :ems_id   => ->(persister) { persister.manager.id },
+                  :name     => "unknown",
+                  :location => "unknown",
+                  :template => true
+                }
+              }
+
+              attributes.merge!(extra_attributes)
+            end
+
+            def hardwares(extra_attributes = {})
+              attributes = {
+                :model_class                  => ::Hardware,
+                :manager_ref                  => [:vm_or_template],
+                :association                  => :hardwares,
+                :parent_inventory_collections => [:vms, :miq_templates],
+                :inventory_object_attributes  => [
+                  :annotation,
+                  :cpu_cores_per_socket,
+                  :cpu_sockets,
+                  :cpu_speed,
+                  :cpu_total_cores,
+                  :cpu_type,
+                  :guest_os,
+                  :manufacturer,
+                  :memory_mb,
+                  :model,
+                  :networks,
+                  :number_of_nics,
+                  :serial_number,
+                  :virtual_hw_version
+                ],
+                # TODO(lsmola) just because of default value on cpu_sockets, this can be fixed by separating instances_hardwares and images_hardwares
+                :use_ar_object                => true,
+              }
+
+              attributes[:targeted_arel] = lambda do |inventory_collection|
+                manager_uuids = inventory_collection.parent_inventory_collections.flat_map { |c| c.manager_uuids.to_a }
+                inventory_collection.parent.hardwares.joins(:vm_or_template).where(
+                  'vms' => {:ems_ref => manager_uuids}
+                )
+              end
+
+              attributes.merge!(extra_attributes)
+            end
+
+            def operating_systems(extra_attributes = {})
+              attributes = {
+                :model_class                  => ::OperatingSystem,
+                :manager_ref                  => [:vm_or_template],
+                :association                  => :operating_systems,
+                :parent_inventory_collections => [:vms, :miq_templates],
+                :inventory_object_attributes  => [
+                  :name,
+                  :product_name,
+                  :product_type,
+                  :system_type,
+                  :version
+                ],
+              }
+
+              attributes[:targeted_arel] = lambda do |inventory_collection|
+                manager_uuids = inventory_collection.parent_inventory_collections.flat_map { |c| c.manager_uuids.to_a }
+                inventory_collection.parent.operating_systems.joins(:vm_or_template).where(
+                  'vms' => {:ems_ref => manager_uuids}
+                )
+              end
+
+              attributes.merge!(extra_attributes)
+            end
+
+            def disks(extra_attributes = {})
+              attributes = {
+                :model_class                  => ::Disk,
+                :manager_ref                  => [:hardware, :device_name],
+                :association                  => :disks,
+                :parent_inventory_collections => [:vms],
+                :inventory_object_attributes  => [
+                  :device_name,
+                  :device_type,
+                  :controller_type,
+                  :present,
+                  :filename,
+                  :location,
+                  :size,
+                  :size_on_disk,
+                  :disk_type,
+                  :mode,
+                  :bootable,
+                  :storage
+                ],
+              }
+
+              attributes[:targeted_arel] = lambda do |inventory_collection|
+                manager_uuids = inventory_collection.parent_inventory_collections.flat_map { |c| c.manager_uuids.to_a }
+                inventory_collection.parent.disks.joins(:hardware => :vm_or_template).where(
+                  :hardware => {'vms' => {:ems_ref => manager_uuids}}
+                )
+              end
+
+              attributes.merge!(extra_attributes)
+            end
+          end
+        end
+    http_version: 
+  recorded_at: Fri, 16 Feb 2018 17:28:31 GMT
+recorded_with: VCR 3.0.3
